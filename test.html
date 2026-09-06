@@ -7,14 +7,18 @@
 </head>
 <body>
     <style>
-        #button {
+        #div_open_close {
             width:fit-content;
             display:flex;
         }
-        #waku {
+        #div_search {
+            width:fit-content;
+            display:flex;
+        }
+        #top {
             box-sizing: border-box;
             border : solid 1px black;
-            height: calc(100vh - 150px);
+            height: calc(100vh - 170px);
             overflow: scroll;
         }
         .hier {
@@ -27,16 +31,18 @@
     </style>
     <input id="file" type="file"></input>
     <br></br>
-    <div id="button">
+    <div id="div_open_close">
         <button id="all_open">all_open</button>
         <button id="all_close">all_close</button>
     </div>
-    <button id="search">search</button>
+    <div id="div_search">
+        <input id="search_word" type="text"></input>
+        <button id="search_button">search</button>
+        <button id="search_clear">clear</button>
+    </div>
 
     <br></br>
-    <div id="waku">
-        <div id="top">
-        </div>
+    <div id="top">
     </div>
     
 </body>
@@ -48,7 +54,8 @@
         let hier = ["top"];
         lines.forEach((line, index) => {
             let str = line.split(/\s+/);
-            let val = ["[", str[0], ",", str[1], "]", str[2]];
+            //let val = ["[", str[0], ",", str[1], "]", str[2]];
+            let val = [str[0], str[1], str[2]];
             hier[Number(str[1]) + 1] = str[0];
             hier_str = hier.slice(0, Number(str[1]) + 1).join("_");
             let p = document.getElementById(hier_str)
@@ -56,9 +63,9 @@
             c_hier.id = hier_str + "_" + str[0];
             c_hier.className = "hier";
             p.appendChild(c_hier);
-            let c_title = document.createElement("pre");
+            let c_title = document.createElement("div");
             c_title.className = "title";
-            c_title.textContent = val.join(" ");
+            c_title.textContent = val[2];
             c_hier.appendChild(c_title);
         });
     }
@@ -92,7 +99,7 @@
         }
     );
 
-    document.getElementById("button").addEventListener(
+    document.getElementById("div_open_close").addEventListener(
         "click",
         (e) => {
             let val = "";
@@ -102,7 +109,7 @@
                 val = "none";
             }
             document.querySelectorAll(".hier").forEach((el) => {
-                if (el.id === "top_1") {
+                if (el.parentElement.id === "top") {
                     el.style.display = "block";
                 } else {
                     el.style.display = val;
@@ -111,17 +118,29 @@
         }
     )
 
-    document.getElementById("search").addEventListener(
+    document.getElementById("search_button").addEventListener(
         "click",
         (e) => {
-            document.querySelectorAll(".hier").forEach((el) => {
-                if (el.id === "top_1_8_9_10") {
-                    console.log("CCC");
-                    el.style.background = "yellow"
-                    el.parentElement.querySelector(":scope > .title").style.color = "red";
-                    el.parentElement.parentElement.querySelector(":scope > .title").style.color = "red";
-                    el.parentElement.parentElement.parentElement.querySelector(":scope > .title").style.color = "red";
+            document.querySelectorAll(".title").forEach((el) => {
+            const search_word = document.getElementById("search_word").value;
+                if (el.textContent === search_word) {
+                    //el.style.background = "yellow"
+                    el.parentElement.style.border = "solid 2px red";
+                    while (el.parentElement.id !== "top") {
+                        el.parentElement.querySelector(":scope > .title").style.color = "red";
+                        el = el.parentElement;
+                    }
                 }
+            });
+        }
+    )
+
+    document.getElementById("search_clear").addEventListener(
+        "click",
+        (e) => {
+            document.querySelectorAll(".title").forEach((el) => {
+                el.style.background = "transparent";
+                el.style.color = "black";
             });
         }
     )
