@@ -39,6 +39,7 @@
         <input id="search_word" type="text"></input>
         <button id="search_button">search</button>
         <button id="search_clear">clear</button>
+        <div id="hit_count">0</div>hit
     </div>
 
     <br></br>
@@ -121,10 +122,11 @@
     document.getElementById("search_button").addEventListener(
         "click",
         (e) => {
+            let hit_count = 0
             document.querySelectorAll(".title").forEach((el) => {
             const search_word = document.getElementById("search_word").value;
                 if (el.textContent === search_word) {
-                    //el.style.background = "yellow"
+                    hit_count = hit_count + 1;
                     el.parentElement.style.border = "solid 2px red";
                     while (el.parentElement.id !== "top") {
                         el.parentElement.querySelector(":scope > .title").style.color = "red";
@@ -132,6 +134,7 @@
                     }
                 }
             });
+            document.getElementById("hit_count").textContent = hit_count;
         }
     )
 
@@ -139,9 +142,10 @@
         "click",
         (e) => {
             document.querySelectorAll(".title").forEach((el) => {
-                el.style.background = "transparent";
                 el.style.color = "black";
+                el.parentElement.style.removeProperty("border");
             });
+            document.getElementById("hit_count").textContent = "0";
         }
     )
 
