@@ -21,9 +21,14 @@
             height: calc(100vh - 170px);
             overflow: scroll;
         }
+        .display {
+            padding: 5px 5px 5px 5px;
+            box-sizing: border-box;
+            display:flex;
+            gap: 20px;
+        }
         .hier {
             box-sizing: border-box;
-            background: white;
             border : solid 1px black;
             margin: 5px 5px 5px 50px;
             padding: 5px 5px 5px 10px;
@@ -64,10 +69,20 @@
             c_hier.id = hier_str + "_" + str[0];
             c_hier.className = "hier";
             p.appendChild(c_hier);
+            let c_open_close = document.createElement("div");
+            c_open_close.className = "open_close";
+            c_hier.appendChild(c_open_close);
+            let c_display = document.createElement("div");
+            c_display.className = "display";
+            c_hier.appendChild(c_display);
+            let c_number = document.createElement("div");
+            c_number.className = "number";
+            c_number.textContent = val[0];
+            c_display.appendChild(c_number);
             let c_title = document.createElement("div");
             c_title.className = "title";
             c_title.textContent = val[2];
-            c_hier.appendChild(c_title);
+            c_display.appendChild(c_title);
         });
     }
 
@@ -89,7 +104,7 @@
         "click",
         (e) => {
             if(e.target.classList.contains("title")) {
-                e.target.parentElement.querySelectorAll(":scope > .hier").forEach(el => {
+                e.target.parentElement.parentElement.querySelectorAll(":scope > .hier").forEach(el => {
                     if (el.style.display === "none") {
                         el.style.display = "block";
                     } else {
@@ -124,13 +139,15 @@
         (e) => {
             let hit_count = 0
             document.querySelectorAll(".title").forEach((el) => {
-            const search_word = document.getElementById("search_word").value;
+                const search_word = document.getElementById("search_word").value;
                 if (el.textContent === search_word) {
                     hit_count = hit_count + 1;
-                    el.parentElement.style.border = "solid 2px red";
-                    while (el.parentElement.id !== "top") {
-                        el.parentElement.querySelector(":scope > .title").style.color = "red";
-                        el = el.parentElement;
+                    el.parentElement.parentElement.style.border = "solid 2px red";
+                    let elp = el.parentElement;
+                    while (elp.parentElement.id !== "top") {
+                        //elp.parentElement.querySelector(":scope > .title").style.color = "red";
+                        elp.parentElement.querySelector(":scope > .display").style.color = "red";
+                        elp = elp.parentElement;
                     }
                 }
             });
@@ -142,8 +159,8 @@
         "click",
         (e) => {
             document.querySelectorAll(".title").forEach((el) => {
-                el.style.color = "black";
-                el.parentElement.style.removeProperty("border");
+                el.parentElement.style.color = "black";
+                el.parentElement.parentElement.style.removeProperty("border");
             });
             document.getElementById("hit_count").textContent = "0";
         }
