@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <style>
+        #button {
+            width:fit-content;
+            display:flex;
+        }
+        #waku {
+            box-sizing: border-box;
+            border : solid 1px black;
+            height: calc(100vh - 150px);
+            overflow: scroll;
+        }
+        .hier {
+            box-sizing: border-box;
+            background: white;
+            border : solid 1px black;
+            margin: 5px 5px 5px 50px;
+            padding: 5px 5px 5px 10px;
+        }
+    </style>
+    <input id="file" type="file"></input>
+    <br></br>
+    <div id="button">
+        <button id="all_open">all_open</button>
+        <button id="all_close">all_close</button>
+    </div>
+    <button id="search">search</button>
+
+    <br></br>
+    <div id="waku">
+        <div id="top">
+        </div>
+    </div>
+    
+</body>
+
+<script>
+
+    const make_element = (text) => {
+        const lines = text.split(/\n/);
+        let hier = ["top"];
+        lines.forEach((line, index) => {
+            let str = line.split(/\s+/);
+            let val = ["[", str[0], ",", str[1], "]", str[2]];
+            hier[Number(str[1]) + 1] = str[0];
+            hier_str = hier.slice(0, Number(str[1]) + 1).join("_");
+            let p = document.getElementById(hier_str)
+            let c = document.createElement("div");
+            c.id = hier_str + "_" + str[0];
+            c.className = "hier";
+            c.textContent = val.join(" ");
+            p.appendChild(c);
+        });
+    }
+
+    document.getElementById("file").addEventListener(
+        "change",
+        (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.readAsText(file);
+            reader.onload = () => {
+                make_element(reader.result);
+            };
+        }
+    );
+
+    document.getElementById("top").addEventListener(
+        "click",
+        (e) => {
+            if(e.target.classList.contains("hier")) {
+                e.target.querySelectorAll(":scope > .hier").forEach(el => {
+                    if (el.style.display === "none") {
+                        el.style.display = "block";
+                    } else {
+                        el.style.display = "none";
+                    }
+                });
+            }
+        }
+    );
+
+    document.getElementById("button").addEventListener(
+        "click",
+        (e) => {
+            let val = "";
+            if (e.target.id === "all_open") {
+                val = "block";
+            } else {
+                val = "none";
+            }
+            document.querySelectorAll(".hier").forEach((el) => {
+                if (el.id === "top_1") {
+                    el.style.display = "block";
+                } else {
+                    el.style.display = val;
+                }
+            });
+        }
+    )
+
+    document.getElementById("search").addEventListener(
+        "click",
+        (e) => {
+            document.querySelectorAll(".hier").forEach((el) => {
+                if (el.id === "top_1_8_9_10") {
+                    console.log("CCC");
+                    el.style.background = "yellow"
+                    el.parentElement.style.background = "pink";
+                    el.parentElement.parentElement.style.background = "pink";
+                    el.parentElement.parentElement.parentElement.style.background = "pink";
+                }
+            });
+        }
+    )
+
+</script>
+</html>
