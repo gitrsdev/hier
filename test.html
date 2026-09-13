@@ -1,170 +1,320 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    <style>
-        #div_open_close {
-            width:fit-content;
-            display:flex;
-        }
-        #div_search {
-            width:fit-content;
-            display:flex;
-        }
-        #top {
-            box-sizing: border-box;
-            border : solid 1px black;
-            height: calc(100vh - 170px);
-            overflow: scroll;
-        }
-        .display {
-            padding: 5px 5px 5px 5px;
-            box-sizing: border-box;
-            display:flex;
-            gap: 20px;
-        }
-        .hier {
-            box-sizing: border-box;
-            border : solid 1px black;
-            margin: 5px 5px 5px 50px;
-            padding: 5px 5px 5px 10px;
-        }
-    </style>
-    <input id="file" type="file"></input>
-    <br></br>
-    <div id="div_open_close">
-        <button id="all_open">all_open</button>
-        <button id="all_close">all_close</button>
-    </div>
-    <div id="div_search">
-        <input id="search_word" type="text"></input>
-        <button id="search_button">search</button>
-        <button id="search_clear">clear</button>
-        <div id="hit_count">0</div>hit
-    </div>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        <style>
+            * {
+                margin: 0px;
+                padding: 0px;
+                box-sizing: border-box;
+            }
+            /* body {
+                min-width: 1500px;
+            } */
+            #container {
+                margin: 0px 0px 0px 0px;
+                padding: 0px 0px 0px 0px;
+            }
+            #div_bom_frame {
+                border : solid 1px rgb(172, 172, 172);
+                padding: 10px 0px 10px 10px;
+                white-space: nowrap;
+                #select_bom_file {
+                    width: 300px;
+                }
+                #button_bom_save {
+                    margin: 0px 30px 0px 0px;
+                }
+            }
+            #div_search_frame {
+                border : solid 1px rgb(172, 172, 172);
+                margin: -1px 0px 0px 0px;
+                padding: 10px 0px 10px 10px;
+                white-space: nowrap;
+                #select_search_target {
+                    width: 100px;
+                }
+                #text_search_word {
+                    width: 300px;
+                }
+                #label_search_hit_count {
+                    margin-left: 10px;
+                    margin-right: 10px;
+                }
+            }
+            #div_bom_operation_frame {
+                border : solid 1px rgb(172, 172, 172);
+                margin: 0px 0px -1px 0px;
+                padding: 10px 0px 10px 10px;
+                white-space: nowrap;
+            }
+            #bom_top {
+                border : solid 1px rgb(172, 172, 172);
+                height: calc(100vh - 180px);
+                overflow-y: scroll;
+                overflow-x: hidden;
+            }
+            .hier_info {
+                margin: 5px 5px 5px 5px;
+                padding: 0px 0px 0px 5px;
+                display:flex;
+                white-space: nowrap;
+                gap: 10px;
+            }
+            .hier {
+                color: black;
+                background-color: white;
+                border : solid 1px black;
+                margin: 5px 5px 5px 30px;
+            }
+            .hier_top {
+                margin-left: 10px;
+            }
+            .hier:not(:has(> .hier)) {
+                background-color: rgb(197, 229, 255);
+            }
+            .hier:has(.search_hit) {
+                color: red;
+            }
+            .search_hit {
+                border: solid 2px red;
+                color: red;
+            }
+            .hide {
+                display: none;
+            }
+            .hier_select {
+                background-color: yellow;
+            }
+        </style>
+        <div id="container">
+            <div id="div_bom_frame">
+                <button id="button_bom_dir">ディレクトリ選択</button>
+                <button id="button_bom_save">保存</button>
+                <label>BOM ファイル名：</label>
+                <select id="select_bom_file">
+                    <option value="" disabled selected>ファイルを選択してください</option>
+                </select>
+                <button id="bom_show">表示</button>
+            </div>
+            <div id="div_search_frame">
+                <select id="select_search_target">
+                    <option value="object_number">物品番号</option>
+                    <option value="use_category">使用区分</option>
+                </select>
+                <input id="text_search_word" type="text"></input>
+                <button id="button_search">search</button>
+                <button id="button_search_clear">clear</button>
+                <label id="label_search_hit_count">0</label><label>hit</label>
+            </div>
+            <br>
+            <div id="div_bom_operation_frame">
+                <button id="all_open">all_open</button>
+                <button id="all_close">all_close</button>
+            </div>
+            <div id="bom_top">
+            </div>
+        </div>
+    </body>
+    <script>
 
-    <br></br>
-    <div id="top">
-    </div>
-    
-</body>
+        let dirHandle = null;
+        let bom_dir = null;
+        let tif_entry = null;
+        let tif_file_name = [];
+        let file_entry = null;
 
-<script>
+        //-----------------------------------------------------------------------------------------------
+        // ファンクション
+        //-----------------------------------------------------------------------------------------------
+        async function openDir() {
+            dirHandle = await window.showDirectoryPicker();
+            for await (let entry of dirHandle.values()) {
+                if (entry.kind === "directory" && entry.name === "bom") {
+                    bom_dir = entry;
+                    document.getElementById("select_bom_file").innerHTML = "";
+                    for await (const bom_entry of bom_dir.values()) {
+                        if (bom_entry.kind === "file") {
+                            const option = document.createElement("option");
+                            option.value = bom_entry.name;
+                            option.textContent = bom_entry.name;
+                            document.getElementById("select_bom_file").appendChild(option);
+                        }
+                    }
+                } else if (entry.kind === "directory" && entry.name === "tif") {
+                    tif_entry = entry;
+                    for await (let tif of tif_entry.values()) {
+                        if (tif.kind === "file" && tif.name !== ".tif") {
+                            tif_file_name.push(tif.name);
+                        }
+                    }
+                }
+            }
+        }
 
-    const make_element = (text) => {
-        const lines = text.split(/\n/);
-        let hier = ["top"];
-        lines.forEach((line, index) => {
-            let str = line.split(/\s+/);
-            //let val = ["[", str[0], ",", str[1], "]", str[2]];
-            let val = [str[0], str[1], str[2]];
-            hier[Number(str[1]) + 1] = str[0];
-            hier_str = hier.slice(0, Number(str[1]) + 1).join("_");
-            let p = document.getElementById(hier_str)
-            let c_hier = document.createElement("div");
-            c_hier.id = hier_str + "_" + str[0];
-            c_hier.className = "hier";
-            p.appendChild(c_hier);
-            let c_open_close = document.createElement("div");
-            c_open_close.className = "open_close";
-            c_hier.appendChild(c_open_close);
-            let c_display = document.createElement("div");
-            c_display.className = "display";
-            c_hier.appendChild(c_display);
-            let c_number = document.createElement("div");
-            c_number.className = "number";
-            c_number.textContent = val[0];
-            c_display.appendChild(c_number);
-            let c_title = document.createElement("div");
-            c_title.className = "title";
-            c_title.textContent = val[2];
-            c_display.appendChild(c_title);
+        const make_element = async (text) => {
+            //const lines = text.split(/\n/);
+            const lines = text.split(/\r?\n/);
+            let hier = ["bom_top"];
+            let number = 1;
+
+            lines.forEach((line, index) => {
+                let str = line.split(/\t/);
+
+                let hier_number = Number(str[0]);
+                let object_number = str[1];
+                //let use = str[3];
+                //let mark_number = str[3];
+                //let drawing_number = str[1];
+                //let object_name = str[2];
+
+                hier[hier_number + 1] = number;
+                hier_str = hier.slice(0, hier_number + 1).join("_");
+                let p = document.getElementById(hier_str)
+                let c_hier = document.createElement("div");
+                c_hier.id = hier_str + "_" + number;
+                c_hier.className = "hier";
+                p.appendChild(c_hier);
+                let c_hier_info = document.createElement("div");
+                c_hier_info.className = "hier_info";
+                c_hier.appendChild(c_hier_info);
+                if (hier_number > 0) {
+                    c_hier.classList.add("hide");
+                } else {
+                    c_hier.classList.add("hier_top");
+                }
+
+                let yoso = [
+                    ["div", {className: "number", textContent: number}],
+                    ["div", {className: "hier_number", textContent: hier_number}],
+                    ["div", {className: "object_number", textContent: object_number}],
+                    ["a", {className: "link_AA", href: "", textContent: ""}],
+                    ["a", {className: "link_SS", href: "", textContent: ""}],
+                    ["a", {className: "link_WW", href: "", textContent: ""}]
+                ]
+
+                let object_number_cut = object_number.slice(2);
+                if (object_number.slice(0, 2) === "AA") {
+                    if (tif_file_name.includes("SS" + object_number_cut + ".tif")) {
+                        yoso[4][1].href = "tif/" + "SS" + object_number_cut + ".tif";
+                        yoso[4][1].textContent = "tif(SS)";
+                    }
+                    if (tif_file_name.includes("WW" + object_number_cut + ".tif")) {
+                        yoso[5][1].href = "tif/" + "WW" + object_number_cut + ".tif";
+                        yoso[5][1].textContent = "tif(WW)";
+                    }
+                }
+                if (tif_file_name.includes(object_number + ".tif")) {
+                    yoso[3][1].href = "tif/" + object_number + ".tif";
+                    yoso[3][1].textContent = "tif";
+                }
+
+                yoso.forEach((item) => {
+                    let c_div = document.createElement(item[0]);
+                    Object.assign(c_div, item[1]);
+                    c_hier_info.appendChild(c_div);
+                });
+            
+                number = number + 1;
+            });
+
+        }
+
+        //-----------------------------------------------------------------------------------------------
+        // イベント
+        //-----------------------------------------------------------------------------------------------
+        document.getElementById("button_bom_dir").addEventListener("click", async (e) => {
+            openDir(e);
         });
-    }
 
-    document.getElementById("file").addEventListener(
-        "change",
-        (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+        document.getElementById("bom_show").addEventListener(
+            "click",
+            async (e) => {
+                const file_name = document.getElementById("select_bom_file").value;
+                if (bom_dir) {
+                    for await (const entry of bom_dir.values()) {
+                        if (entry.kind === "file" && entry.name === file_name) {
+                            file_entry = await entry;
+                            const file = await entry.getFile();
+                            await make_element(await file.text());
+                        }
+                    }
+                }
+            }
+        );
 
-            const reader = new FileReader();
-            reader.readAsText(file);
-            reader.onload = () => {
-                make_element(reader.result);
-            };
-        }
-    );
+        document.getElementById("button_bom_save").addEventListener(
+            "click",
+            async (e) => {
+                //const fileHandle = await file_entry.getFileHandle("test.txt", { create: true });
+                let line = "";
+                document.getElementById("bom_top").querySelectorAll(".hier_info").forEach((el) => {
+                    line = line + el.children[1].textContent + "\t" + el.children[2].textContent + "\n";
+                });
+                const writable = await file_entry.createWritable();
+                //const writable = await fileHandle.createWritable();
+                await writable.write(line);
+                await writable.close();
+            }
+        );
 
-    document.getElementById("top").addEventListener(
-        "click",
-        (e) => {
-            if(e.target.classList.contains("title")) {
-                e.target.parentElement.parentElement.querySelectorAll(":scope > .hier").forEach(el => {
-                    if (el.style.display === "none") {
-                        el.style.display = "block";
-                    } else {
-                        el.style.display = "none";
+        document.getElementById("bom_top").addEventListener(
+            "click",
+            (e) => {
+                if(e.target.classList.contains("object_number")) {
+                    e.target.parentElement.parentElement.querySelectorAll(":scope > .hier").forEach(el => {
+                        el.classList.toggle("hide"); 
+                    });
+                } else if (e.target.classList.contains("hier") && e.shiftKey) {
+                    e.target.classList.toggle("hier_select"); 
+                }
+            }
+        );
+
+        document.getElementById("div_bom_operation_frame").addEventListener(
+            "click",
+            (e) => {
+                document.querySelectorAll(".hier").forEach((el) => {
+                    if (!el.classList.contains("hier_top")) {
+                        if (e.target.id === "all_open") {
+                            el.classList.remove("hide");
+                        } else if (e.target.id === "all_close") {
+                            el.classList.add("hide");
+                        }
                     }
                 });
             }
-        }
-    );
+        )
 
-    document.getElementById("div_open_close").addEventListener(
-        "click",
-        (e) => {
-            let val = "";
-            if (e.target.id === "all_open") {
-                val = "block";
-            } else {
-                val = "none";
-            }
-            document.querySelectorAll(".hier").forEach((el) => {
-                if (el.parentElement.id === "top") {
-                    el.style.display = "block";
-                } else {
-                    el.style.display = val;
-                }
-            });
-        }
-    )
-
-    document.getElementById("search_button").addEventListener(
-        "click",
-        (e) => {
-            let hit_count = 0
-            document.querySelectorAll(".title").forEach((el) => {
-                const search_word = document.getElementById("search_word").value;
-                if (el.textContent === search_word) {
-                    hit_count = hit_count + 1;
-                    el.parentElement.parentElement.style.border = "solid 2px red";
-                    let elp = el.parentElement;
-                    while (elp.parentElement.id !== "top") {
-                        //elp.parentElement.querySelector(":scope > .title").style.color = "red";
-                        elp.parentElement.querySelector(":scope > .display").style.color = "red";
-                        elp = elp.parentElement;
+        document.getElementById("button_search").addEventListener(
+            "click",
+            (e) => {
+                let hit_count = 0
+                let target = document.getElementById("select_search_target").value;
+                document.querySelectorAll("." + target).forEach((el) => {
+                    const search_word = document.getElementById("text_search_word").value;
+                    if (el.textContent === search_word) {
+                        hit_count = hit_count + 1;
+                        el.parentElement.parentElement.classList.add("search_hit");
                     }
-                }
-            });
-            document.getElementById("hit_count").textContent = hit_count;
-        }
-    )
+                });
+                document.getElementById("label_search_hit_count").textContent = hit_count;
+            }
+        )
 
-    document.getElementById("search_clear").addEventListener(
-        "click",
-        (e) => {
-            document.querySelectorAll(".title").forEach((el) => {
-                el.parentElement.style.color = "black";
-                el.parentElement.parentElement.style.removeProperty("border");
-            });
-            document.getElementById("hit_count").textContent = "0";
-        }
-    )
+        document.getElementById("button_search_clear").addEventListener(
+            "click",
+            (e) => {
+                document.querySelectorAll(".hier").forEach((el) => {
+                    el.classList.remove("search_hit");
+                });
+                document.getElementById("label_search_hit_count").textContent = "0";
+            }
+        )
 
-</script>
+    </script>
 </html>
