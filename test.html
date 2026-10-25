@@ -46,25 +46,26 @@
                     margin-right: 10px;
                 }
             }
-            #div_bom_operation_frame {
+            #div_bom_setting {
                 border : solid 1px rgb(172, 172, 172);
-                margin: 0px 0px -1px 0px;
+                margin: -1px 0px 0px 0px;
                 padding: 10px 0px 10px 10px;
-                white-space: nowrap;
+                display: flex;
+                gap: 10px;
+            }
+            #table {
+                font-size: 10px;
             }
             #bom_top {
                 border : solid 1px rgb(172, 172, 172);
-                height: calc(100vh - 180px);
+                height: calc(100vh - 240px);
                 overflow-y: scroll;
                 overflow-x: hidden;
+                user-select: none;
             }
-            .hier_info {
-                margin: 5px 5px 5px 5px;
-                padding: 0px 0px 0px 5px;
-                display:flex;
-                white-space: nowrap;
-                gap: 10px;
-            }
+            /* -------------------------------------------- */
+            /* hier                                         */
+            /* -------------------------------------------- */
             .hier {
                 color: black;
                 background-color: white;
@@ -74,21 +75,63 @@
             .hier_top {
                 margin-left: 10px;
             }
-            .hier:not(:has(> .hier)) {
-                background-color: rgb(197, 229, 255);
-            }
             .hier:has(.search_hit) {
                 color: red;
             }
+            .hide > .hier {
+                display: none;
+            }
+            .hide_kikou {
+                display: none;
+            }
+            .hide_number {
+                display: none;
+            }
+            /* -------------------------------------------- */
+            /* hier_info                                    */
+            /* -------------------------------------------- */
+            .hier_info {
+                margin: 0px 5px 0px 0px;
+                padding: 0px 0px 0px 5px;
+                display:flex;
+                white-space: nowrap;
+                /* gap: 10px; */
+            }
+            /* -------------------------------------------- */
+            /* op_cl                                        */
+            /* -------------------------------------------- */
+            .op_cl {
+                background-color: rgb(185, 183, 183);
+                margin: 5px 5px 5px 0px;
+                padding: 5px 10px 5px 10px;
+                font-size: 10px;
+            }
+            .hide > .hier_info > .op_cl {
+                background-color: aqua;
+            }
+            .hier:not(:has(> .hier)) .op_cl {
+                /* background-color: rgb(197, 229, 255); */
+                /* pointer-events: none; */
+                    background-color: white;
+            }
+            /* -------------------------------------------- */
+            /* yoso                                         */
+            /* -------------------------------------------- */
+            .yoso {
+                padding: 3px 5px 3px 5px;
+            }
+            /* -------------------------------------------- */
+            /* other                                        */
+            /* -------------------------------------------- */
             .search_hit {
                 border: solid 2px red;
                 color: red;
             }
-            .hide {
+            .off {
                 display: none;
             }
             .hier_select {
-                background-color: yellow;
+                background-color: rgb(255, 255, 180);
             }
         </style>
         <div id="container">
@@ -100,21 +143,35 @@
                     <option value="" disabled selected>ファイルを選択してください</option>
                 </select>
                 <button id="bom_show">表示</button>
+                <input id="file" type="file"></input>
             </div>
             <div id="div_search_frame">
                 <select id="select_search_target">
-                    <option value="object_number">物品番号</option>
-                    <option value="use_category">使用区分</option>
                 </select>
                 <input id="text_search_word" type="text"></input>
                 <button id="button_search">search</button>
                 <button id="button_search_clear">clear</button>
                 <label id="label_search_hit_count">0</label><label>hit</label>
             </div>
+            <div id="div_bom_setting">
+                <input id="checkbox_kikou" type="checkbox"><label>機構</label>
+                <input id="checkbox_number" type="checkbox"><label>番号</label>
+            </div>
             <br>
-            <div id="div_bom_operation_frame">
-                <button id="all_open">all_open</button>
-                <button id="all_close">all_close</button>
+            <table id="table">
+                <tr>
+                    <td>Shift + ●クリック</td>
+                    <td width="20" align="center">:</td>
+                    <td>クリックした階層以下すべて開閉する</td>
+                </tr>
+                <tr>
+                    <td>Ctrl + 要素文字列クリック</td>
+                    <td width="20" align="center">:</td>
+                    <td>要素の文字列コピー</td>
+                </tr>
+            </table>
+            <br>
+            <div id="path">
             </div>
             <div id="bom_top">
             </div>
@@ -159,18 +216,38 @@
         const make_element = async (text) => {
             //const lines = text.split(/\n/);
             const lines = text.split(/\r?\n/);
+            let yoso_order = lines.shift().split(/,/);
+            yoso_order.unshift("0");
             let hier = ["bom_top"];
             let number = 1;
+
+            yoso_order.forEach((item, index) => {
+                if (index === 0) return;
+                let checkbox = document.createElement("input");
+                checkbox.id = "yoso_" + index;
+                checkbox.type = "checkbox";
+                checkbox.checked = "true";
+                document.getElementById("div_bom_setting").appendChild(checkbox);
+                let label = document.createElement("label");
+                label.textContent = "要素 " + index;
+                document.getElementById("div_bom_setting").appendChild(label);
+                let drop = document.createElement("option");
+                drop.value = "yoso_" + index;
+                drop.textContent = "要素 " + index;
+                document.getElementById("select_search_target").appendChild(drop);
+            });
 
             lines.forEach((line, index) => {
                 let str = line.split(/\t/);
 
                 let hier_number = Number(str[0]);
-                let object_number = str[1];
-                //let use = str[3];
-                //let mark_number = str[3];
-                //let drawing_number = str[1];
-                //let object_name = str[2];
+                let yoso = [];
+                for (let i = 1; i < yoso_order.length; i++) {
+                    yoso[i] = ["div", {className: "yoso yoso_" + i, textContent: str[yoso_order[i] - 1]}];
+                }
+
+                yoso.unshift(["div", {className: "yoso number hide_number", textContent: number}]);
+                yoso.unshift(["div", {className: "op_cl", textContent: ""}]);
 
                 hier[hier_number + 1] = number;
                 hier_str = hier.slice(0, hier_number + 1).join("_");
@@ -182,36 +259,38 @@
                 let c_hier_info = document.createElement("div");
                 c_hier_info.className = "hier_info";
                 c_hier.appendChild(c_hier_info);
-                if (hier_number > 0) {
-                    c_hier.classList.add("hide");
-                } else {
+                c_hier.classList.add("hide");
+                if (hier_number === 0) {
                     c_hier.classList.add("hier_top");
                 }
 
-                let yoso = [
-                    ["div", {className: "number", textContent: number}],
-                    ["div", {className: "hier_number", textContent: hier_number}],
-                    ["div", {className: "object_number", textContent: object_number}],
-                    ["a", {className: "link_AA", href: "", textContent: ""}],
-                    ["a", {className: "link_SS", href: "", textContent: ""}],
-                    ["a", {className: "link_WW", href: "", textContent: ""}]
-                ]
-
-                let object_number_cut = object_number.slice(2);
-                if (object_number.slice(0, 2) === "AA") {
-                    if (tif_file_name.includes("SS" + object_number_cut + ".tif")) {
-                        yoso[4][1].href = "tif/" + "SS" + object_number_cut + ".tif";
-                        yoso[4][1].textContent = "tif(SS)";
+                // ------------------------------------------------------------------------------------------------------
+                // BOM List用
+                // ------------------------------------------------------------------------------------------------------
+                    if (str[1].slice(1, 2) === "M") {
+                       c_hier.classList.add("kikou");
+                       c_hier.classList.add("hide_kikou");
                     }
-                    if (tif_file_name.includes("WW" + object_number_cut + ".tif")) {
-                        yoso[5][1].href = "tif/" + "WW" + object_number_cut + ".tif";
-                        yoso[5][1].textContent = "tif(WW)";
+                    yoso.push(["a", {className: "link_AA yoso", href: "", textContent: ""}]);
+                    yoso.push(["a", {className: "link_SS yoso", href: "", textContent: ""}]);
+                    yoso.push(["a", {className: "link_WW yoso", href: "", textContent: ""}]);
+                    let object_number = str[1];
+                    let object_number_cut = object_number.slice(2);
+                    if (object_number.slice(0, 2) === "AA") {
+                        if (tif_file_name.includes("SS" + object_number_cut + ".tif")) {
+                            yoso[yoso_order.length + 3][1].href = "tif/" + "SS" + object_number_cut + ".tif";
+                            yoso[yoso_order.length + 3][1].textContent = "tif(SS)";
+                        }
+                        if (tif_file_name.includes("WW" + object_number_cut + ".tif")) {
+                            yoso[yoso_oder.length + 4][1].href = "tif/" + "WW" + object_number_cut + ".tif";
+                            yoso[yoso_oder.length + 4][1].textContent = "tif(WW)";
+                        }
                     }
-                }
-                if (tif_file_name.includes(object_number + ".tif")) {
-                    yoso[3][1].href = "tif/" + object_number + ".tif";
-                    yoso[3][1].textContent = "tif";
-                }
+                    if (tif_file_name.includes(object_number + ".tif")) {
+                        yoso[yoso_order.length + 2][1].href = "tif/" + object_number + ".tif";
+                        yoso[yoso_order.length + 2][1].textContent = "tif";
+                    }
+                // ------------------------------------------------------------------------------------------------------
 
                 yoso.forEach((item) => {
                     let c_div = document.createElement(item[0]);
@@ -231,6 +310,22 @@
             openDir(e);
         });
 
+        document.getElementById("div_bom_setting").addEventListener("change", (e) => {
+            if (e.target.id === "checkbox_kikou") {
+                document.querySelectorAll(".kikou").forEach((el) => {
+                    el.classList.toggle("hide_kikou");
+                })
+            } else if (e.target.id === "checkbox_number") {
+                document.querySelectorAll(".number").forEach((el) => {
+                    el.classList.toggle("hide_number");
+                })
+            } else {
+                document.querySelectorAll("." + e.target.id.replace("checkbox_", "")).forEach((el) => {
+                    el.classList.toggle("off");
+                })
+            }
+        });
+
         document.getElementById("bom_show").addEventListener(
             "click",
             async (e) => {
@@ -244,6 +339,20 @@
                         }
                     }
                 }
+            }
+        );
+
+        document.getElementById("file").addEventListener(
+            "change",
+            (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.readAsText(file);
+                reader.onload = () => {
+                    make_element(reader.result);
+                };
             }
         );
 
@@ -265,34 +374,47 @@
         document.getElementById("bom_top").addEventListener(
             "click",
             (e) => {
-                if(e.target.classList.contains("object_number")) {
-                    e.target.parentElement.parentElement.querySelectorAll(":scope > .hier").forEach(el => {
-                        el.classList.toggle("hide"); 
-                    });
+                if(e.target.classList.contains("op_cl")) {
+                    let state = "";
+                    e.target.parentElement.parentElement.classList.toggle("hide");
+                    if (e.shiftKey) {
+                        e.target.parentElement.parentElement.querySelectorAll(".hier").forEach((el) => {
+                            if (e.target.parentElement.parentElement.classList.contains("hide")) {
+                                el.classList.add("hide");
+                            } else {
+                                el.classList.remove("hide");
+                            }
+                        });
+                    }
                 } else if (e.target.classList.contains("hier") && e.shiftKey) {
                     e.target.classList.toggle("hier_select"); 
+                } else if (e.target.classList.contains("yoso") && e.ctrlKey) {
+                    e.target.style.backgroundColor = "pink";
+                    navigator.clipboard.writeText(e.target.textContent);
+                    setTimeout(() => {
+                        e.target.style.backgroundColor = "";
+                    }, 300);
+                } else if (e.target.classList.contains("yoso_2")) {
+                    let path = e.target.textContent;
+                    let parent = e.target.parentElement;
+                    if (e.target.parentElement.parentElement.id !== "bom_top") {
+                        parent = parent.parentElement.parentElement;
+                        while (parent.id !== "bom_top") {
+                            path = parent.querySelector(".yoso_2").textContent + "/" + path;
+                            parent = parent.parentElement;
+                        }
+                    }
+                    document.getElementById("path").textContent = "PATH : " + path;
                 }
             }
         );
 
-        document.getElementById("div_bom_operation_frame").addEventListener(
-            "click",
-            (e) => {
-                document.querySelectorAll(".hier").forEach((el) => {
-                    if (!el.classList.contains("hier_top")) {
-                        if (e.target.id === "all_open") {
-                            el.classList.remove("hide");
-                        } else if (e.target.id === "all_close") {
-                            el.classList.add("hide");
-                        }
-                    }
-                });
-            }
-        )
-
         document.getElementById("button_search").addEventListener(
             "click",
             (e) => {
+                document.querySelectorAll(".search_hit").forEach((el) => {
+                    el.classList.remove("search_hit");
+                });
                 let hit_count = 0
                 let target = document.getElementById("select_search_target").value;
                 document.querySelectorAll("." + target).forEach((el) => {
